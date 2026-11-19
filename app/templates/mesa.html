@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<main class="mesa">
+    <header class="mesa__topo">
+        <h1>Sua mesa</h1>
+        <form
+            class="captura"
+            hx-post="/api/demandas/capturar"
+            hx-ext="json-enc"
+            hx-swap="none"
+            hx-on::after-request="
+                if (event.detail.successful) {
+                    this.reset();
+                    const aviso = this.querySelector('.captura__status');
+                    aviso.textContent = 'Capturado! A triagem roda em segundo plano…';
+                    setTimeout(() => { aviso.textContent = ''; }, 4000);
+                }
+            "
+        >
+            <textarea
+                name="texto"
+                placeholder="Escreva a demanda numa frase solta…"
+                required
+                rows="2"
+            ></textarea>
+            <button type="submit">Capturar</button>
+            <p class="captura__status" role="status" aria-live="polite"></p>
+        </form>
+    </header>
+
+    <div
+        id="conteudo-mesa"
+        hx-get="/mesa/conteudo"
+        hx-trigger="sse:message"
+        hx-swap="innerHTML"
+        hx-target="this"
+    >
+        {% include "partials/conteudo_mesa.html" %}
+    </div>
+</main>
+{% endblock %}
