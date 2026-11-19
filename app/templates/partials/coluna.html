@@ -1,0 +1,11 @@
+<div class="coluna-cabecalho">
+  <h2>{{ rotulo }}</h2>
+  <span class="contagem">
+    {{ demandas|length }}{% if status.value == "em_execucao" %} / {{ limite_em_execucao }}{% endif %}
+  </span>
+</div>
+<ul class="coluna-lista" data-status="{{ status.value }}">
+  {% for demanda in demandas %}
+    {% include "partials/card_demanda.html" %}
+  {% endfor %}
+</ul>
