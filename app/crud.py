@@ -1,7 +1,7 @@
 """Acesso a dados e regras do ciclo de vida da demanda.
 
-Mantem a coluna de cada status com `posicao` contigua (0..n-1), para que o
-Kanban possa reordenar os cards por arrastar e soltar.
+Mantem a coluna de cada status com `posicao` contigua (0..n-1), para suportar
+reordenacao das demandas dentro de um mesmo status.
 """
 
 from __future__ import annotations

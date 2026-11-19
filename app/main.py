@@ -6,10 +6,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 
 from app.database import criar_tabelas
-from app.routers import demandas, eventos, paginas
+from app.routers import demandas, eventos
 
 
 @asynccontextmanager
@@ -20,8 +19,5 @@ async def ciclo_de_vida(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Agent de Demandas", lifespan=ciclo_de_vida)
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-app.include_router(paginas.router)
 app.include_router(demandas.router)
 app.include_router(eventos.router)

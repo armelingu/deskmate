@@ -1,8 +1,9 @@
 """Barramento de eventos em memoria para alimentar o painel via SSE.
 
 Fase 1 nao tem a entidade `evento` (essa chega com execucao/triagem).
-Aqui so avisamos o painel de quais colunas do Kanban mudaram, para
-recarregar via Server-Sent Events sem precisar de polling.
+Aqui so avisamos os assinantes de quais status de demanda mudaram, para
+a futura interface do painel atualizar via Server-Sent Events sem
+precisar de polling.
 """
 
 from __future__ import annotations

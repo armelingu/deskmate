@@ -4,7 +4,8 @@ Fila de demandas de desenvolvimento com agent de IA para triagem e execução, e
 
 Veja `SPEC.md` para escopo, arquitetura e roadmap.
 
-Status: fase 1 (fila manual) — implementada.
+Status: fase 1 (fila manual) — API implementada. Ainda sem interface gráfica
+(a interface do painel será o escritório virtual, ver fase 5 do roadmap).
 
 ## Rodando localmente
 
@@ -13,7 +14,8 @@ pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
 
-Acesse `http://127.0.0.1:8000/kanban`.
+A API fica em `http://127.0.0.1:8000/api/demandas` e o stream de eventos em
+`http://127.0.0.1:8000/eventos/stream`.
 
 ## Testes
 

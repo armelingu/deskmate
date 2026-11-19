@@ -1,4 +1,4 @@
-"""Endpoint SSE que alimenta o painel com as colunas do Kanban que mudaram."""
+"""Endpoint SSE que publica quais status de demanda mudaram, para a futura interface do painel."""
 
 from __future__ import annotations
 

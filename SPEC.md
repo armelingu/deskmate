@@ -7,7 +7,7 @@ Centralizar todas as demandas de desenvolvimento numa fila única, com um agent 
 - Cadastro e priorização de demandas (manual e por texto livre)
 - Triagem automática: estruturar, sugerir impacto e esforço
 - Execução de demandas de desenvolvimento marcadas como delegáveis, em branch isolada
-- Painel com Kanban, log de execução e consumo de tokens
+- Painel de observação (interface: escritório virtual, ver fase 5) com log de execução e consumo de tokens
 
 **Fora do escopo**
 - Acesso a bases de produção (Protheus ou qualquer outra)
@@ -55,19 +55,20 @@ Toda aprovação vira um `evento` do tipo *aprovacao*.
 | Agent de triagem | Texto livre → demanda estruturada (JSON) | API do Claude com tool use |
 | Executor | Implementa demanda delegável em branch isolada | Claude Code em modo não interativo, um worktree por demanda |
 | Servidor MCP | Expõe a fila como ferramentas para uso conversacional | SDK MCP em Python |
-| Painel | Kanban e log ao vivo | Front simples + SSE do FastAPI |
+| Painel | Log ao vivo e consumo | SSE do FastAPI (interface: escritório virtual, fase 5) |
 
 Fluxo: demanda entra pela API → orquestrador abre uma `execucao` → cada passo do agent vira `evento` → o painel recebe os eventos por SSE.
 
 ## Painel de observação
-1. **Kanban**: uma coluna por estado; cards com impacto, esforço e solicitante; indicador ao vivo nos cards em execução pelo agent.
-2. **Execução**: linha do tempo de eventos em tempo real, diff resultante, botões Aprovar / Reprovar com comentário.
-3. **Consumo**: tokens e custo por execução, por demanda e por semana, por modelo.
+Sem interface gráfica própria nas fases 1 a 4 (API + SSE apenas); a interface
+do painel é o escritório virtual da fase 5.
+1. **Execução**: linha do tempo de eventos em tempo real, diff resultante, botões Aprovar / Reprovar com comentário.
+2. **Consumo**: tokens e custo por execução, por demanda e por semana, por modelo.
 
 ## Roadmap
 | Fase | Entrega | Pronto quando |
 | --- | --- | --- |
-| 1. Fila manual | Banco, API e Kanban, sem IA | Todas as demandas abertas no quadro e uso por 1 semana |
+| 1. Fila manual | Banco e API, sem IA e sem interface própria | Todas as demandas cadastradas e geridas pela API por 1 semana |
 | 2. Triagem | Agent estrutura texto livre e sugere prioridade; log no painel | 10 demandas triadas, maioria das sugestões aceitas |
 | 3. Executor | Demandas delegáveis viram PR em branch isolada, com linha do tempo ao vivo | 5 demandas pequenas entregues e aprovadas via PR |
 | 4. Rotinas | Resumo diário, relatório semanal, alerta de demanda parada | Relatório semanal enviado sem edição manual |
