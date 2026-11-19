@@ -1,38 +1,45 @@
-# Agent de Demandas — Spec
+# deskmate — Spec
 
 ## Objetivo e escopo
-Centralizar todas as demandas de desenvolvimento numa fila única, com um agent que tria, prioriza e executa parte delas, e um painel onde cada passo do agent fica visível.
+Centralizar todas as demandas de desenvolvimento numa fila única, com um agent que tria, prioriza e executa parte delas, e uma interface onde cada passo do agent fica visível.
 
 **Dentro do escopo**
-- Cadastro e priorização de demandas (manual e por texto livre)
+- Captura rápida: você escreve uma frase solta e o agent transforma em demanda estruturada
 - Triagem automática: estruturar, sugerir impacto e esforço
+- Check-in diário: o sistema pergunta o status em vez de esperar você atualizar
 - Execução de demandas de desenvolvimento marcadas como delegáveis, em branch isolada
-- Painel de observação (interface: escritório virtual, ver fase 5) com log de execução e consumo de tokens
+- Interface em formato de escritório virtual, com os agents trabalhando ao vivo e o consumo de tokens visível
 
 **Fora do escopo**
 - Acesso a bases de produção (Protheus ou qualquer outra)
 - Merge, deploy ou publicação sem aprovação humana
 - Envio de mensagens a usuários ou solicitantes
-- Captura automática de e-mail, Teams ou WhatsApp (avaliar depois da fase 4)
+- Captura automática de e-mail, Teams ou WhatsApp (avaliar depois da fase 5)
 
 ## Entidades
 | Entidade | Campos principais |
 | --- | --- |
-| `demanda` | id, titulo, descricao, solicitante, area, impacto (1–3), esforco (P/M/G), status, prazo, delegavel (bool), repositorio, criado_em |
+| `demanda` | id, titulo, descricao, solicitante, area, impacto (1–3), esforco (P/M/G), status, status_anterior, posicao, prazo, delegavel (bool), repositorio, criado_em, atualizado_em |
 | `execucao` | id, demanda_id, tipo (triagem/desenvolvimento/resumo), status, modelo, branch, resultado, tokens_entrada, tokens_saida, custo_usd, inicio, fim |
 | `evento` | id, execucao_id, ts, tipo (mensagem/tool_call/tool_result/erro/aprovacao), payload (JSON) |
 
+O custo fica gravado por execução desde o início, para que a economia de tokens seja medida, não estimada.
+
 ## Ciclo de vida da demanda
+Seis estados principais em sequência, mais dois laterais. Não há colunas nem quadro: cada estado é um lugar no escritório (Entrada na caixa de entrada, Em execução na sua mesa, Bloqueada na sala de espera, Concluída na estante).
+
 1. **Entrada**: chegou, ainda sem estrutura.
 2. **Triada**: o agent estruturou e sugeriu impacto e esforço; você confirma.
 3. **Priorizada**: tem posição na fila e define se é delegável.
 4. **Em execução**: você ou o agent trabalhando. Limite de 2 por vez.
-5. **Em revisão**: resultado do agent aguardando aprovação.
+5. **Em revisão**: resultado do agent aguardando sua aprovação.
 6. **Concluída**.
 
 Laterais: **Bloqueada** (volta ao estado anterior quando liberada) e **Cancelada**. Reprovação na revisão devolve para *Em execução* com comentário.
 
 ## Permissões do agent
+O agent lê e propõe livremente; tudo que muda estado fora da própria fila passa por você.
+
 | Ação | Agent sozinho | Exige aprovação |
 | --- | --- | --- |
 | Estruturar demanda e sugerir prioridade | Sim | Confirmar a triagem |
@@ -55,26 +62,30 @@ Toda aprovação vira um `evento` do tipo *aprovacao*.
 | Agent de triagem | Texto livre → demanda estruturada (JSON) | API do Claude com tool use |
 | Executor | Implementa demanda delegável em branch isolada | Claude Code em modo não interativo, um worktree por demanda |
 | Servidor MCP | Expõe a fila como ferramentas para uso conversacional | SDK MCP em Python |
-| Painel | Log ao vivo e consumo | SSE do FastAPI (interface: escritório virtual, fase 5) |
+| Escritório virtual | Interface única: sua mesa, ambientes e agents ao vivo | Front web moderno (a definir na fase 2) + SSE do FastAPI |
 
-Fluxo: demanda entra pela API → orquestrador abre uma `execucao` → cada passo do agent vira `evento` → o painel recebe os eventos por SSE.
+Fluxo: demanda entra pela API → orquestrador abre uma `execucao` → cada passo do agent vira `evento` → o escritório recebe os eventos por SSE em tempo real.
 
-## Painel de observação
-Sem interface gráfica própria nas fases 1 a 4 (API + SSE apenas); a interface
-do painel é o escritório virtual da fase 5.
-1. **Execução**: linha do tempo de eventos em tempo real, diff resultante, botões Aprovar / Reprovar com comentário.
-2. **Consumo**: tokens e custo por execução, por demanda e por semana, por modelo.
+## Interface: escritório virtual
+Quatro telas, nesta ordem de construção:
+
+1. **Sua mesa** (tela principal): só o que você está fazendo agora (máximo 2) e a próxima da fila, com um campo de captura rápida sempre visível.
+2. **Escritório**: os ambientes por estado (caixa de entrada, sala de espera, estante) e, a partir da fase 4, as mesas dos agents com animação ao vivo.
+3. **Execução**: ao abrir uma demanda, a linha do tempo de eventos em tempo real, o diff resultante e os botões Aprovar / Reprovar com comentário.
+4. **Consumo**: tokens e custo por execução, por demanda e por semana, por modelo.
 
 ## Roadmap
+Cada fase entrega algo usável sozinha; só avance quando o critério de pronto for cumprido.
+
 | Fase | Entrega | Pronto quando |
 | --- | --- | --- |
-| 1. Fila manual | Banco e API, sem IA e sem interface própria | Todas as demandas cadastradas e geridas pela API por 1 semana |
-| 2. Triagem | Agent estrutura texto livre e sugere prioridade; log no painel | 10 demandas triadas, maioria das sugestões aceitas |
-| 3. Executor | Demandas delegáveis viram PR em branch isolada, com linha do tempo ao vivo | 5 demandas pequenas entregues e aprovadas via PR |
-| 4. Rotinas | Resumo diário, relatório semanal, alerta de demanda parada | Relatório semanal enviado sem edição manual |
-| 5. Escritório virtual (opcional) | Agents como personagens num escritório animado, reagindo aos eventos | Cada tipo de `evento` tem animação, sem mudança no backend |
+| 1. Fila (feito) | Banco, API, regras do ciclo de vida e SSE, sem interface | Testes passando e API respondendo |
+| 2. Escritório + captura | Sua mesa, ambientes do escritório e agent de triagem recebendo texto livre | Todas as demandas abertas cadastradas por texto e uso por 1 semana |
+| 3. Check-in | Perguntas de status no início e no fim do dia | Uma semana sem atualizar nada manualmente |
+| 4. Executor | Agents ganham mesas no escritório e entregam demandas delegáveis como PR | 5 demandas pequenas entregues e aprovadas via PR |
+| 5. Rotinas | Resumo diário, relatório semanal, alerta de demanda parada | Relatório semanal enviado sem edição manual |
 
-O servidor MCP pode entrar ao fim da fase 1. A fase 5 só começa com as fases 1 a 3 rodando.
+O servidor MCP pode entrar a qualquer momento depois da fase 1, como atalho para cadastrar e consultar demandas conversando. O sistema não usa Kanban em nenhuma tela: o escritório virtual é a única interface.
 
 ## Economia de tokens
 **No sistema**
@@ -88,3 +99,7 @@ O servidor MCP pode entrar ao fim da fase 1. A fase 5 só começa com as fases 1
 - `CLAUDE.md` enxuto por repositório.
 - Uma demanda por sessão, contexto limpo entre elas.
 - Demandas com arquivo alvo, critério de aceite e o que não mexer.
+
+**Na construção do projeto**
+- Esta spec é a fonte de verdade: cada sessão referencia a fase atual, sem recontar o projeto.
+- Uma fase por vez, um entregável por sessão.
