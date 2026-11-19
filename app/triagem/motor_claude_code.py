@@ -30,7 +30,13 @@ import tempfile
 import threading
 
 from app import config
-from app.triagem.esquema import ESQUEMA_TRIAGEM, SYSTEM_PROMPT_TRIAGEM, ResultadoTriagem, TriagemFalhou, validar_e_construir
+from app.triagem.esquema import (
+    SYSTEM_PROMPT_TRIAGEM,
+    ResultadoTriagem,
+    TriagemFalhou,
+    construir_esquema_triagem,
+    validar_e_construir,
+)
 
 _TRAVA = threading.Lock()
 
@@ -42,7 +48,7 @@ def _montar_comando(texto: str) -> list[str]:
         "--output-format",
         "json",
         "--json-schema",
-        json.dumps(ESQUEMA_TRIAGEM),
+        json.dumps(construir_esquema_triagem()),
         "--model",
         config.CLAUDE_CODE_MODELO,
         "--restricted",

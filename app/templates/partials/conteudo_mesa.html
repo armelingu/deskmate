@@ -76,10 +76,14 @@
             <label>Descrição
                 <textarea name="descricao" rows="2">{{ d.descricao or "" }}</textarea>
             </label>
-            <label>Área
-                <input type="text" name="area" value="{{ d.area or '' }}">
-            </label>
             <div class="linha">
+                <label>Área
+                    <select name="area">
+                        {% for a in areas %}
+                        <option value="{{ a }}" {% if d.area==a %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
                 <label>Impacto
                     <select name="impacto">
                         {% for n in [1, 2, 3] %}

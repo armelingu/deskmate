@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app import crud
+from app import config, crud
 from app.database import obter_sessao
 from app.models import Esforco, StatusDemanda
 
@@ -29,6 +29,7 @@ def _contexto_mesa(db: Session) -> dict:
         "triadas": crud.listar(db, status=StatusDemanda.TRIADA),
         "falhas": crud.listar_com_falha_de_triagem(db),
         "esforcos": list(Esforco),
+        "areas": config.AREAS_DISPONIVEIS,
     }
 
 

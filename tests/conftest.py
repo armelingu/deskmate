@@ -94,7 +94,7 @@ def claude_mock(monkeypatch):
             padrao = {
                 "titulo": "Ajustar relatorio mensal",
                 "descricao": "Corrigir o calculo de totais no relatorio mensal.",
-                "area": "financeiro",
+                "area": "Financeiro",
                 "impacto": 2,
                 "esforco": "M",
             }
@@ -142,7 +142,7 @@ def claude_code_mock(monkeypatch):
         padrao = {
             "titulo": "Ajustar relatorio mensal",
             "descricao": "Corrigir o calculo de totais no relatorio mensal.",
-            "area": "financeiro",
+            "area": "Financeiro",
             "impacto": 2,
             "esforco": "M",
         }

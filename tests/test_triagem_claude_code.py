@@ -82,7 +82,7 @@ def test_triagem_via_claude_code_roda_num_diretorio_temporario_vazio(cliente, mo
         padrao = {
             "titulo": "Ajustar relatorio mensal",
             "descricao": "Corrigir o calculo de totais no relatorio mensal.",
-            "area": "financeiro",
+            "area": "Financeiro",
             "impacto": 2,
             "esforco": "M",
         }

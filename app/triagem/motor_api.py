@@ -13,11 +13,11 @@ import anthropic
 
 from app import config
 from app.triagem.esquema import (
-    FERRAMENTA_ESTRUTURAR_DEMANDA,
     NOME_FERRAMENTA,
     SYSTEM_PROMPT_TRIAGEM,
     ResultadoTriagem,
     TriagemFalhou,
+    construir_ferramenta_estruturar_demanda,
     validar_e_construir,
 )
 
@@ -45,7 +45,7 @@ def chamar_claude(cliente: anthropic.Anthropic, texto: str):
                 "cache_control": {"type": "ephemeral"},
             }
         ],
-        tools=[FERRAMENTA_ESTRUTURAR_DEMANDA],
+        tools=[construir_ferramenta_estruturar_demanda()],
         tool_choice={"type": "tool", "name": NOME_FERRAMENTA},
         messages=[{"role": "user", "content": texto}],
     )

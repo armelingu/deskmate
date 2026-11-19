@@ -40,7 +40,7 @@ def test_capturar_dispara_triagem_que_estrutura_a_demanda(cliente, claude_mock):
     atual = cliente.get(f"/api/demandas/{criada['id']}").json()
     assert atual["status"] == "triada"
     assert atual["titulo"] == "Ajustar relatorio mensal"
-    assert atual["area"] == "financeiro"
+    assert atual["area"] == "Financeiro"
     assert atual["impacto"] == 2
     assert atual["esforco"] == "M"
     # o texto original nunca e sobrescrito pela triagem.

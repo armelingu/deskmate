@@ -15,6 +15,16 @@ load_dotenv()
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
+# Lista fixa de areas que a triagem pode escolher (nunca texto livre).
+AREAS_DISPONIVEIS = [
+    area.strip()
+    for area in os.getenv(
+        "AREAS_DISPONIVEIS",
+        "Fiscal,Financeiro,Compras,Vendas,Manutenção,Estoque,TI,Outros",
+    ).split(",")
+    if area.strip()
+]
+
 # Qual motor de triagem usar: "claude_code" (padrao - usa a assinatura do
 # usuario via `claude` CLI, sem precisar de chave de API) ou "api" (API do
 # Claude direto, com tool use - precisa de ANTHROPIC_API_KEY).
