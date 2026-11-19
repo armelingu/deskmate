@@ -9,10 +9,12 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Demanda, StatusDemanda
-from app.schemas import DemandaAtualizar, DemandaCriar
+from app import execucoes
+from app.models import Demanda, StatusDemanda, StatusExecucao, TipoEvento, TipoExecucao
+from app.schemas import DemandaAtualizar, DemandaConfirmarTriagem, DemandaCriar
 
 LIMITE_EM_EXECUCAO = 2
+TAMANHO_TITULO_CAPTURA = 80
 
 
 class LimiteExecucaoExcedido(Exception):
@@ -21,6 +23,10 @@ class LimiteExecucaoExcedido(Exception):
 
 class TransicaoInvalida(Exception):
     """Levantada quando a mudanca de status pedida nao faz sentido no estado atual."""
+
+
+class EstadoInvalidoParaConfirmar(Exception):
+    """Levantada ao confirmar a triagem de uma demanda que nao esta em Triada."""
 
 
 def _contar_em_execucao(db: Session, excluir_id: int | None = None) -> int:
@@ -84,6 +90,73 @@ def atualizar(db: Session, demanda: Demanda, dados: DemandaAtualizar) -> Demanda
     db.commit()
     db.refresh(demanda)
     return demanda
+
+
+def _titulo_provisorio(texto: str) -> str:
+    texto = texto.strip()
+    if not texto:
+        return "Nova demanda"
+    if len(texto) <= TAMANHO_TITULO_CAPTURA:
+        return texto
+    return texto[: TAMANHO_TITULO_CAPTURA - 1].rstrip() + "…"
+
+
+def capturar(db: Session, texto: str) -> Demanda:
+    """Captura rapida: cria a demanda ja em Entrada, com o texto original
+    preservado. Titulo/descricao/area/impacto/esforco ficam provisorios ate
+    a triagem (que roda em segundo plano) os preencher."""
+    posicao = _proxima_posicao(db, StatusDemanda.ENTRADA)
+    demanda = Demanda(
+        titulo=_titulo_provisorio(texto),
+        texto_original=texto,
+        status=StatusDemanda.ENTRADA,
+        posicao=posicao,
+    )
+    db.add(demanda)
+    db.commit()
+    db.refresh(demanda)
+    return demanda
+
+
+def confirmar_triagem(db: Session, demanda: Demanda, ajustes: DemandaConfirmarTriagem) -> Demanda:
+    """Confirma (com ajustes opcionais) a triagem sugerida e move para
+    Priorizada. Por SPEC, toda aprovacao vira um evento - aqui, anexado na
+    execucao de triagem que gerou a sugestao."""
+    if demanda.status != StatusDemanda.TRIADA:
+        raise EstadoInvalidoParaConfirmar(
+            "Essa demanda nao esta aguardando confirmacao de triagem."
+        )
+
+    ajustes_aplicados = ajustes.model_dump(exclude_unset=True, exclude={"delegavel"})
+    for campo, valor in ajustes_aplicados.items():
+        setattr(demanda, campo, valor)
+    if ajustes.delegavel is not None:
+        demanda.delegavel = ajustes.delegavel
+        ajustes_aplicados["delegavel"] = ajustes.delegavel
+
+    demanda = mover(db, demanda, StatusDemanda.PRIORIZADA)
+
+    execucao = execucoes.execucao_mais_recente(db, demanda.id, TipoExecucao.TRIAGEM)
+    if execucao is not None:
+        execucoes.registrar_evento(
+            db,
+            execucao.id,
+            TipoEvento.APROVACAO,
+            {"acao": "confirmar_triagem", "ajustes": ajustes_aplicados},
+        )
+    return demanda
+
+
+def listar_com_falha_de_triagem(db: Session) -> list[Demanda]:
+    """Demandas em Entrada cuja ultima triagem terminou em erro - mostradas
+    na mesa com um botao para tentar de novo."""
+    candidatas = listar(db, status=StatusDemanda.ENTRADA)
+    falhas = []
+    for demanda in candidatas:
+        ultima = execucoes.execucao_mais_recente(db, demanda.id, TipoExecucao.TRIAGEM)
+        if ultima is not None and ultima.status == StatusExecucao.ERRO:
+            falhas.append(demanda)
+    return falhas
 
 
 def mover(
