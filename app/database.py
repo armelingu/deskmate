@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import os
 from collections.abc import Generator
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./demandas.db")
+# Raiz do projeto (pai de app/) - nao o diretorio de trabalho do processo, que
+# muda conforme de onde o `deskmate` e chamado (ex.: pelo wrapper global).
+RAIZ_DO_PROJETO = Path(__file__).resolve().parent.parent
+
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{RAIZ_DO_PROJETO / 'demandas.db'}")
 
 _argumentos_conexao = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, connect_args=_argumentos_conexao)

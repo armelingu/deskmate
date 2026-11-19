@@ -8,6 +8,8 @@ sem precisar de rotas HTML proprias para cada acao.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -18,7 +20,9 @@ from app.database import obter_sessao
 from app.models import Esforco, StatusDemanda
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+# Caminho absoluto (nao relativo ao diretorio de trabalho do processo, que
+# muda conforme de onde o `deskmate` e chamado).
+templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
 
 def _contexto_mesa(db: Session) -> dict:

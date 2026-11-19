@@ -8,10 +8,16 @@ tambem para quem nao exportou as variaveis manualmente no shell.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# Caminho absoluto do `.env` na raiz do projeto - sem isso, `load_dotenv()`
+# procura a partir do diretorio de trabalho do processo, que muda conforme
+# de onde o `deskmate` e chamado (ex.: pelo wrapper global), e nao acharia
+# o arquivo.
+_ENV_NA_RAIZ_DO_PROJETO = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(_ENV_NA_RAIZ_DO_PROJETO)
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
