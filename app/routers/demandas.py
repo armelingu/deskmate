@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi import status as status_http
 from sqlalchemy.orm import Session
 
-from app import crud, schemas
+from app import crud, schemas, triagem
 from app.database import obter_sessao
 from app.eventos import barramento
 from app.models import Demanda, StatusDemanda
@@ -37,6 +37,51 @@ async def criar_demanda(
 ) -> Demanda:
     demanda = crud.criar(db, dados)
     await barramento.publicar({"colunas": [demanda.status.value]})
+    return demanda
+
+
+@router.post(
+    "/capturar", response_model=schemas.DemandaLeitura, status_code=status_http.HTTP_201_CREATED
+)
+async def capturar_demanda(
+    dados: schemas.DemandaCapturar,
+    tarefas: BackgroundTasks,
+    db: Session = Depends(obter_sessao),
+) -> Demanda:
+    """Captura rapida: cria a demanda em Entrada na hora e dispara a triagem
+    em segundo plano (nao bloqueia esta resposta)."""
+    demanda = crud.capturar(db, dados.texto)
+    await barramento.publicar({"colunas": [demanda.status.value]})
+    tarefas.add_task(triagem.executar_triagem_em_background, demanda.id, db)
+    return demanda
+
+
+@router.post("/{demanda_id}/retriar-triagem", response_model=schemas.DemandaLeitura)
+async def retriar_triagem(
+    demanda_id: int,
+    tarefas: BackgroundTasks,
+    db: Session = Depends(obter_sessao),
+) -> Demanda:
+    demanda = _obter_ou_404(db, demanda_id)
+    if demanda.status != StatusDemanda.ENTRADA:
+        raise HTTPException(status_http.HTTP_400_BAD_REQUEST, "Essa demanda nao esta em Entrada.")
+    tarefas.add_task(triagem.executar_triagem_em_background, demanda.id, db)
+    return demanda
+
+
+@router.post("/{demanda_id}/confirmar-triagem", response_model=schemas.DemandaLeitura)
+async def confirmar_triagem(
+    demanda_id: int, dados: schemas.DemandaConfirmarTriagem, db: Session = Depends(obter_sessao)
+) -> Demanda:
+    demanda = _obter_ou_404(db, demanda_id)
+    status_antigo = demanda.status
+    try:
+        demanda = crud.confirmar_triagem(db, demanda, dados)
+    except crud.EstadoInvalidoParaConfirmar as erro:
+        raise HTTPException(status_http.HTTP_400_BAD_REQUEST, str(erro)) from erro
+    await barramento.publicar(
+        {"colunas": sorted({status_antigo.value, demanda.status.value})}
+    )
     return demanda
 
 

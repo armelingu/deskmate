@@ -1,0 +1,128 @@
+<section class="secao">
+    <h2>Em execução <span class="contagem">{{ em_execucao|length }}/2</span></h2>
+    {% if em_execucao %}
+    <div class="grade">
+        {% for d in em_execucao %}
+        <article class="card">
+            <h3>{{ d.titulo }}</h3>
+            {% if d.descricao %}<p>{{ d.descricao }}</p>{% endif %}
+            <p class="meta">
+                {{ d.area or "—" }} · impacto {{ d.impacto or "—" }} ·
+                esforço {{ d.esforco.value if d.esforco else "—" }}
+            </p>
+            <div class="acoes">
+                <button
+                    hx-post="/api/demandas/{{ d.id }}/mover"
+                    hx-ext="json-enc"
+                    hx-vals='{"status": "concluida"}'
+                    hx-swap="none"
+                >Concluir</button>
+                <button
+                    class="secundario"
+                    hx-post="/api/demandas/{{ d.id }}/bloquear"
+                    hx-swap="none"
+                >Bloquear</button>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="vazio">Nada em execução agora.</p>
+    {% endif %}
+</section>
+
+<section class="secao">
+    <h2>Próxima da fila</h2>
+    {% if proxima %}
+    <article class="card">
+        <h3>{{ proxima.titulo }}</h3>
+        {% if proxima.descricao %}<p>{{ proxima.descricao }}</p>{% endif %}
+        <p class="meta">
+            {{ proxima.area or "—" }} · impacto {{ proxima.impacto or "—" }} ·
+            esforço {{ proxima.esforco.value if proxima.esforco else "—" }}
+        </p>
+        <div class="acoes">
+            <button
+                hx-post="/api/demandas/{{ proxima.id }}/mover"
+                hx-ext="json-enc"
+                hx-vals='{"status": "em_execucao"}'
+                hx-swap="none"
+                {% if em_execucao|length >= 2 %}
+                disabled title="As 2 vagas de execução estão ocupadas"
+                {% endif %}
+            >Iniciar</button>
+        </div>
+    </article>
+    {% else %}
+    <p class="vazio">Fila vazia.</p>
+    {% endif %}
+</section>
+
+<section class="secao">
+    <h2>Triagens aguardando confirmação <span class="contagem">{{ triadas|length }}</span></h2>
+    {% if triadas %}
+        {% for d in triadas %}
+        <form
+            class="card card--form"
+            hx-post="/api/demandas/{{ d.id }}/confirmar-triagem"
+            hx-ext="json-enc"
+            hx-swap="none"
+            hx-on::after-request="if (event.detail.successful) { this.remove(); }"
+        >
+            <p class="texto-original">“{{ d.texto_original }}”</p>
+            <label>Título
+                <input type="text" name="titulo" value="{{ d.titulo }}" required maxlength="200">
+            </label>
+            <label>Descrição
+                <textarea name="descricao" rows="2">{{ d.descricao or "" }}</textarea>
+            </label>
+            <div class="linha">
+                <label>Área
+                    <select name="area">
+                        {% for a in areas %}
+                        <option value="{{ a }}" {% if d.area==a %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Impacto
+                    <select name="impacto">
+                        {% for n in [1, 2, 3] %}
+                        <option value="{{ n }}" {% if d.impacto==n %}selected{% endif %}>{{ n }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Esforço
+                    <select name="esforco">
+                        {% for e in esforcos %}
+                        <option value="{{ e.value }}" {% if d.esforco==e %}selected{% endif %}>{{ e.value }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="checkbox">
+                    <input type="checkbox" name="delegavel" value="true" {% if d.delegavel %}checked{% endif %}>
+                    Delegável
+                </label>
+            </div>
+            <button type="submit">Confirmar</button>
+        </form>
+        {% endfor %}
+    {% else %}
+    <p class="vazio">Nenhuma triagem aguardando confirmação.</p>
+    {% endif %}
+</section>
+
+{% if falhas %}
+<section class="secao secao--alerta">
+    <h2>Triagem falhou</h2>
+    {% for d in falhas %}
+    <article class="card card--erro">
+        <p class="texto-original">“{{ d.texto_original }}”</p>
+        <div class="acoes">
+            <button hx-post="/api/demandas/{{ d.id }}/retriar-triagem" hx-swap="none">
+                Tentar de novo
+            </button>
+        </div>
+    </article>
+    {% endfor %}
+</section>
+{% endif %}
