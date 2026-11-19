@@ -8,7 +8,8 @@ Centralizar todas as demandas de desenvolvimento numa fila única, com um agent 
 - Triagem automática: estruturar, sugerir impacto e esforço
 - Check-in diário: o sistema pergunta o status em vez de esperar você atualizar
 - Execução de demandas de desenvolvimento marcadas como delegáveis, em branch isolada
-- Interface em formato de escritório virtual, com os agents trabalhando ao vivo e o consumo de tokens visível
+- Interface própria enxuta ("sua mesa") para capturar e acompanhar demandas
+- Visualização dos agents trabalhando delegada ao Habblaud (projeto externo), que já mostra as sessões do Claude Code num escritório virtual
 
 **Fora do escopo**
 - Acesso a bases de produção (Protheus ou qualquer outra)
@@ -26,7 +27,7 @@ Centralizar todas as demandas de desenvolvimento numa fila única, com um agent 
 O custo fica gravado por execução desde o início, para que a economia de tokens seja medida, não estimada.
 
 ## Ciclo de vida da demanda
-Seis estados principais em sequência, mais dois laterais. Não há colunas nem quadro: cada estado é um lugar no escritório (Entrada na caixa de entrada, Em execução na sua mesa, Bloqueada na sala de espera, Concluída na estante).
+Seis estados principais em sequência, mais dois laterais. Não há colunas nem quadro: a tela principal mostra só o que está em execução e a próxima da fila; os demais estados ficam acessíveis por filtro.
 
 1. **Entrada**: chegou, ainda sem estrutura.
 2. **Triada**: o agent estruturou e sugeriu impacto e esforço; você confirma.
@@ -62,17 +63,17 @@ Toda aprovação vira um `evento` do tipo *aprovacao*.
 | Agent de triagem | Texto livre → demanda estruturada (JSON) | API do Claude com tool use |
 | Executor | Implementa demanda delegável em branch isolada | Claude Code em modo não interativo, um worktree por demanda |
 | Servidor MCP | Expõe a fila como ferramentas para uso conversacional | SDK MCP em Python |
-| Escritório virtual | Interface única: sua mesa, ambientes e agents ao vivo | Front web moderno (a definir na fase 2) + SSE do FastAPI |
+| Sua mesa | Captura rápida, demanda atual e próxima, aprovação de revisões | Front web leve servido pelo FastAPI + SSE |
+| Habblaud (externo) | Escritório virtual com as sessões do Claude Code ao vivo | Instalado à parte; o deskmate não altera nem depende do código dele |
 
-Fluxo: demanda entra pela API → orquestrador abre uma `execucao` → cada passo do agent vira `evento` → o escritório recebe os eventos por SSE em tempo real.
+Fluxo: demanda entra pela API → orquestrador abre uma `execucao` → cada passo do agent vira `evento` → a sua mesa recebe os eventos por SSE em tempo real. As sessões do Claude Code abertas pelo executor aparecem no Habblaud automaticamente.
 
-## Interface: escritório virtual
-Quatro telas, nesta ordem de construção:
+## Interface
+Três telas no deskmate, nesta ordem de construção. A visão dos agents trabalhando fica no Habblaud.
 
 1. **Sua mesa** (tela principal): só o que você está fazendo agora (máximo 2) e a próxima da fila, com um campo de captura rápida sempre visível.
-2. **Escritório**: os ambientes por estado (caixa de entrada, sala de espera, estante) e, a partir da fase 4, as mesas dos agents com animação ao vivo.
-3. **Execução**: ao abrir uma demanda, a linha do tempo de eventos em tempo real, o diff resultante e os botões Aprovar / Reprovar com comentário.
-4. **Consumo**: tokens e custo por execução, por demanda e por semana, por modelo.
+2. **Execução**: ao abrir uma demanda, a linha do tempo de eventos em tempo real, o diff resultante e os botões Aprovar / Reprovar com comentário.
+3. **Consumo**: tokens e custo por execução, por demanda e por semana, por modelo.
 
 ## Roadmap
 Cada fase entrega algo usável sozinha; só avance quando o critério de pronto for cumprido.
@@ -80,12 +81,12 @@ Cada fase entrega algo usável sozinha; só avance quando o critério de pronto 
 | Fase | Entrega | Pronto quando |
 | --- | --- | --- |
 | 1. Fila (feito) | Banco, API, regras do ciclo de vida e SSE, sem interface | Testes passando e API respondendo |
-| 2. Escritório + captura | Sua mesa, ambientes do escritório e agent de triagem recebendo texto livre | Todas as demandas abertas cadastradas por texto e uso por 1 semana |
+| 2. Sua mesa + captura | Tela da sua mesa e agent de triagem recebendo texto livre | Todas as demandas abertas cadastradas por texto e uso por 1 semana |
 | 3. Check-in | Perguntas de status no início e no fim do dia | Uma semana sem atualizar nada manualmente |
-| 4. Executor | Agents ganham mesas no escritório e entregam demandas delegáveis como PR | 5 demandas pequenas entregues e aprovadas via PR |
+| 4. Executor | Demandas delegáveis viram sessões do Claude Code (visíveis no Habblaud) e são entregues como PR | 5 demandas pequenas entregues e aprovadas via PR |
 | 5. Rotinas | Resumo diário, relatório semanal, alerta de demanda parada | Relatório semanal enviado sem edição manual |
 
-O servidor MCP pode entrar a qualquer momento depois da fase 1, como atalho para cadastrar e consultar demandas conversando. O sistema não usa Kanban em nenhuma tela: o escritório virtual é a única interface.
+O servidor MCP pode entrar a qualquer momento depois da fase 1, como atalho para cadastrar e consultar demandas conversando. O sistema não usa Kanban em nenhuma tela. O Habblaud é usado como está: o deskmate não mantém escritório virtual próprio.
 
 ## Economia de tokens
 **No sistema**
